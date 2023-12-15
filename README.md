@@ -1,2 +1,2 @@
-# Computer-architectures
-Code written while learning computer architecture
+## Peculiarities
+Code examples are provided on [NASM](https://ru.wikipedia.org/wiki/NASM) for Linux
