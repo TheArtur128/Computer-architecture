@@ -2,8 +2,10 @@ global _start
 
 section .data
     counter dq 0
-    rendered_counter_index dd 0 ; CleanRender
 
+    symbol_overflow dq 10
+
+    rendered_counter_index dd 0 ; CleanRender
     message db 'counted = ', 0
     message_length equ $ - message
 
@@ -12,59 +14,103 @@ section .data
 
     sleep_seconds db 1
 
+    output db 0, 0
+
 section .bss
     rendered_counter resb 1000
 
 section .text
 _start:
-    inc counter
+    call _count
 
-    push counter
-    call _render
-    call _show
-    call _wait
+    mov eax, counter
+    push eax
+    call render
+    call show
+    call wait_
 
     jmp _start
 
-; CleanRender -> int -> RenderedCounter
-; changes eax, ebx, ecx, edx, rendered_counter, rendered_counter_index
-_render:
-    pop eax
+; * -> *
+; changes eax, counter
+count:
+    mov eax, [counter]
+    inc eax
+    mov [counter], eax
 
-    cmp eax, 10
+    ret
+
+; CleanRender -> int counter -> RenderedCounter
+; changes eax, ebx, ecx, edx, rendered_counter, rendered_counter_index
+render:
+    pop eax ; counter
+
+    mov ebx, [symbol_overflow] ; 10
+    cmp eax, ebx
     jl _add_rendered
 
-    mov ecx, eax
+    mov ecx, eax ; counter
 
     mov edx, 0
-    mov ebx, 10
-
     div ebx
-    mov edx, eax
 
-    mov ebx, eax
-    times 9 add
+    mov ebx, eax ; counter // 10
+    times 9 add eax, ebx ; counter // 10 * 10
 
-    mov ebx, eax
-    mov eax, ecx
+    mov ebx, eax ; counter // 10 * 10
 
-    sub ecx, eax
+    sub ecx, eax ; counter - counter // 10 * 10
     mov eax, ecx
 
     _add_rendered:
         mov ebx, 48
-        add
-        mov [rendered_counter + rendered_counter_index], eax
-        inc rendered_counter_index
+        add eax, ebx
+
+        mov ecx, rendered_counter
+        mov edx, rendered_counter_index
+        add ecx, edx
+
+        mov [ecx], eax
+
+        mov eax, [rendered_counter_index]
+        inc eax
+        mov [rendered_counter_index], eax
 
     push ebx
-    call _render
+    call render
 
+    ret
+
+; numebr int -> number_system int -> int
+get_last_number:
+    pop ebx ; number_system
+    pop eax ; number
+
+    cmp eax, ebx
+    jl _return_last_number
+
+    mov ecx, eax ; number
+
+    mov edx, 0
+    div ebx
+
+    mov ebx, eax ; number // 10
+    times 9 add eax, ebx ; number // 10 * 10
+
+    mov ebx, eax ; number // 10 * 10
+
+    sub ecx, eax ; number - number // 10 * 10
+    mov eax, ecx
+
+    jmp _return_last_number
+
+_return_last_number:
+    push eax
     ret
 
 ; RenderedCounter -> CleanRender
 ; changes eax, ebx, ecx, edx, rendered_counter_index
-_show:
+show:
     mov eax, 4
     mov ebx, 1
     mov ecx, message
@@ -81,23 +127,32 @@ _show:
 
     ret
 
-    _show_counter:
-        mov eax, 4
-        mov ebx, 1
-        mov ecx, db [rendered_counter + rendered_counter_index], 0
-        mov edx, 2
-        int 128
+_show_counter:
+    mov eax, rendered_counter
+    mov ebx, rendered_counter_index
+    add eax, ebx
 
-        dec rendered_counter_index
+    mov [output], eax
 
-        cmp rendered_counter_index, 0
-        jg _show_counter
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, output
+    mov edx, 2
+    int 128
 
-        ret
+    mov al, [rendered_counter_index]
+    dec al
+    mov [rendered_counter_index], al
+
+    mov bl, 0
+    cmp al, bl
+    jg _show_counter
+
+    ret
 
 ; * -> *
 ; changes eax, ebx
-_wait:
+wait_:
     mov eax, 101
     mov ebx, [sleep_seconds]
     int 128
