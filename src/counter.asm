@@ -40,7 +40,7 @@ count:
 
     ret
 
-; CleanRender -> int counter -> RenderedCounter
+; CleanRender & int counter -> RenderedCounter
 ; changes eax, ebx, ecx, edx, rendered_counter, rendered_counter_index
 render:
     pop eax ; counter
@@ -81,7 +81,7 @@ render:
 
     ret
 
-; numebr int -> number_system int -> int
+; numebr int & number_system int -> int
 get_last_number:
     pop ebx ; number_system
     pop eax ; number
